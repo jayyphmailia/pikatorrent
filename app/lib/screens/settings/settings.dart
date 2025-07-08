@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pikatorrent/engine/session.dart';
 import 'package:pikatorrent/main.dart';
 import 'package:pikatorrent/models/app.dart';
+import 'package:pikatorrent/models/premium.dart';
 import 'package:pikatorrent/models/session.dart';
 import 'package:pikatorrent/screens/settings/dialogs/maximum_active_downloads_editor.dart';
 import 'package:pikatorrent/screens/settings/dialogs/reset_torrent_settings.dart';
@@ -118,16 +119,193 @@ class _SettingsScreenState extends State<SettingsScreen> {
     appModel.setcheckForUpdate(value);
   }
 
+  void _showPremiumDialog(BuildContext context, PremiumModel premiumModel) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(premiumModel.isPremium ? 'Premium Status' : 'Upgrade to Premium'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                if (premiumModel.isPremium) ...[
+                  Text('Status: ${premiumModel.getSubscriptionStatusText()}'),
+                  const SizedBox(height: 8),
+                  Text('Expires: ${premiumModel.getSubscriptionExpiryText()}'),
+                  const SizedBox(height: 16),
+                  const Text('Premium Features:'),
+                  const SizedBox(height: 8),
+                  const Text('• Unlimited Downloads'),
+                  const Text('• Priority Support'),
+                  const Text('• Advanced Streaming'),
+                  const Text('• Custom Themes'),
+                ] else ...[
+                  const Text('Upgrade to Premium to unlock:'),
+                  const SizedBox(height: 8),
+                  const Text('• Unlimited Downloads'),
+                  const Text('• Priority Support'),
+                  const Text('• Advanced Streaming'),
+                  const Text('• Custom Themes'),
+                  const SizedBox(height: 16),
+                  const Text('Support the development of PikaTorrent!'),
+                ],
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            if (premiumModel.isPremium) ...[
+              TextButton(
+                child: const Text('Manage Subscription'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // TODO: Implement subscription management
+                },
+              ),
+              TextButton(
+                child: const Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+            ] else ...[
+              TextButton(
+                child: const Text('Maybe Later'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: const Text('Upgrade'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _showUpgradeOptions(context, premiumModel);
+                },
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  void _showUpgradeOptions(BuildContext context, PremiumModel premiumModel) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choose Your Plan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_month),
+                  title: const Text('Monthly'),
+                  subtitle: const Text('\$4.99/month'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _simulateSubscriptionPurchase(context, premiumModel, 'monthly');
+                  },
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: const Text('Yearly'),
+                  subtitle: const Text('\$49.99/year (Save 17%)'),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _simulateSubscriptionPurchase(context, premiumModel, 'yearly');
+                  },
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _simulateSubscriptionPurchase(BuildContext context, PremiumModel premiumModel, String subscriptionType) {
+    // This is a simulation - in a real app, this would integrate with platform stores
+    final now = DateTime.now();
+    final expiryDate = subscriptionType == 'monthly' 
+        ? now.add(const Duration(days: 30))
+        : now.add(const Duration(days: 365));
+    
+    premiumModel.activateSubscription(subscriptionType, expiryDate);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Premium ${subscriptionType} subscription activated!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer2<AppModel, SessionModel>(
-        builder: (context, app, sessionModel, child) {
+    return Consumer3<AppModel, SessionModel, PremiumModel>(
+        builder: (context, app, sessionModel, premiumModel, child) {
       var downloadDir = sessionModel.session?.downloadDir ?? '';
       var downloadQueueSize = sessionModel.session?.downloadQueueSize ?? '';
 
       return ListView(children: [
+        // Premium section
         Padding(
           padding: const EdgeInsets.only(left: 16.0),
+          child: Text('Premium', style: Theme.of(context).textTheme.titleLarge),
+        ),
+        ListTile(
+          leading: Icon(
+            premiumModel.isPremium ? Icons.star : Icons.star_border,
+            color: premiumModel.isPremium ? Colors.amber : null,
+          ),
+          title: Text(premiumModel.getSubscriptionStatusText()),
+          subtitle: premiumModel.isPremium
+              ? Text(premiumModel.getSubscriptionExpiryText())
+              : const Text('Upgrade to Premium for unlimited downloads and priority support'),
+          trailing: premiumModel.isPremium
+              ? const Icon(Icons.check_circle, color: Colors.green)
+              : const Icon(Icons.arrow_forward_ios),
+          onTap: () => _showPremiumDialog(context, premiumModel),
+        ),
+        if (premiumModel.isPremium) ...[
+          const Padding(
+            padding: EdgeInsets.only(left: 16.0),
+            child: Text('Premium Features', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          ),
+          ListTile(
+            leading: const Icon(Icons.cloud_download, size: 20),
+            title: const Text('Unlimited Downloads', style: TextStyle(fontSize: 14)),
+            dense: true,
+            trailing: Icon(Icons.check, color: Colors.green.shade600),
+          ),
+          ListTile(
+            leading: const Icon(Icons.support_agent, size: 20),
+            title: const Text('Priority Support', style: TextStyle(fontSize: 14)),
+            dense: true,
+            trailing: Icon(Icons.check, color: Colors.green.shade600),
+          ),
+          ListTile(
+            leading: const Icon(Icons.video_library, size: 20),
+            title: const Text('Advanced Streaming', style: TextStyle(fontSize: 14)),
+            dense: true,
+            trailing: Icon(Icons.check, color: Colors.green.shade600),
+          ),
+        ],
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0, top: 16),
           child: Text('App settings',
               style: Theme.of(context).textTheme.titleLarge),
         ),

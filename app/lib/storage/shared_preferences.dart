@@ -20,4 +20,14 @@ class SharedPrefsStorage {
     var prefs = await SharedPreferences.getInstance();
     prefs.setBool(key, value);
   }
+
+  static getInt(String key) async {
+    var prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(key);
+  }
+
+  static setInt(String key, int value) async {
+    var prefs = await SharedPreferences.getInstance();
+    prefs.setInt(key, value);
+  }
 }

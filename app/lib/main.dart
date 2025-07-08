@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pikatorrent/engine/engine.dart';
 import 'package:pikatorrent/engine/transmission/transmission.dart';
 import 'package:pikatorrent/models/app.dart';
+import 'package:pikatorrent/models/premium.dart';
 import 'package:pikatorrent/models/session.dart';
 import 'package:pikatorrent/models/torrents.dart';
 import 'package:pikatorrent/navigation/router.dart';
@@ -108,6 +109,7 @@ class PikaTorrent extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AppModel()),
+        ChangeNotifierProvider(create: (context) => PremiumModel()),
         ChangeNotifierProvider(create: (context) => TorrentsModel()),
         ChangeNotifierProvider(create: (context) => SessionModel())
       ],
